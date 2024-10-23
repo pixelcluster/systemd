@@ -4323,6 +4323,66 @@ int unit_patch_contexts(Unit *u) {
         }
 
         cc = unit_get_cgroup_context(u);
+        bool is_user_service = SERVICE(u) && strstr(u->id, "user@");
+        if (cc && (SLICE(u) || is_user_service)) {
+                FILE *f = fopen("/sys/fs/cgroup/dev.region.capacity", "r");
+                if (!f)
+                        goto skip;
+                char *linebuf = NULL;
+                size_t size = 0;
+
+                while (getline(&linebuf, &size, f) != -1) {
+
+                        if (strstr(linebuf, "drm/")) {
+                                char *space = strstr(linebuf, " ");
+                                if (!space)
+                                        goto cont;
+                                size_t path_len = space - linebuf;
+                                char *path = malloc(path_len + 1);
+                                if (!path)
+                                        goto cont;
+                                strncpy(path, linebuf, path_len);
+                                path[path_len] = '\0';
+                                char *region_start = space + 1;
+
+                                char *eq = strstr(region_start, "=");
+                                size_t region_len = eq - region_start;
+                                char *region = malloc(region_len + 1);
+                                if (!region) {
+                                        free(path);
+                                        goto cont;
+                                }
+                                strncpy(region, region_start, region_len);
+                                region[region_len] = '\0';
+
+                                char *val_start = eq + 1;
+
+                                uint64_t val = strtoull(val_start, NULL, 10);
+
+                                CGroupDeviceMemoryLimit lim = {
+                                        .device = path,
+                                        .region = region,
+                                        .low = val,
+                                        .max = val,
+                                        .low_valid = true,
+                                        .max_valid = true,
+                                };
+                                cgroup_context_add_device_memory_limit(cc, &lim);
+
+                                free(region);
+                                free(path);
+                        }
+
+                cont:
+                        free(linebuf);
+                        linebuf = NULL;
+                        size = 0;
+                }
+                free(linebuf);
+                fclose(f);
+        }
+skip:
+
         if (cc && ec) {
 
                 if (ec->private_devices &&
