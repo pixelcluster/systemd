@@ -2396,6 +2396,8 @@ int bus_cgroup_set_property(
                         if (!UNIT_WRITE_FLAGS_NOOP(flags)) {
                                 l = NULL;
 
+                                log_info("Setting device memory low %s %s=%lu", device, region, size);
+
                                 LIST_FOREACH(dev_limits, cur, c->dev_mem_limits) {
                                         if (!strcmp(cur->device, device) && !strcmp(cur->region, region)) {
                                                 l = cur;
