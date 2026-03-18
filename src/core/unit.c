@@ -583,6 +583,7 @@ void unit_submit_to_stop_when_bound_queue(Unit *u) {
         if (!UNIT_IS_ACTIVE_OR_RELOADING(unit_active_state(u)))
                 return;
 
+        log_unit_info(u, "Submitting to stop when bound queue.");
         if (!unit_has_dependency(u, UNIT_ATOM_CANNOT_BE_ACTIVE_WITHOUT, NULL))
                 return;
 

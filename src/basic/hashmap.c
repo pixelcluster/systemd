@@ -1220,9 +1220,9 @@ static unsigned base_bucket_scan(HashmapBase *h, unsigned idx, const void *key) 
         unsigned dib, distance;
         dib_raw_t *dibs = dib_raw_ptr(h);
 
-        assert(idx < n_buckets(h));
-
         for (distance = 0; ; distance++) {
+                assert(idx < n_buckets(h));
+
                 if (dibs[idx] == DIB_RAW_FREE)
                         return IDX_NIL;
 
@@ -1251,6 +1251,7 @@ int hashmap_put(Hashmap *h, const void *key, void *value) {
         hash = bucket_hash(h, key);
         idx = bucket_scan(h, hash, key);
         if (idx != IDX_NIL) {
+                assert(idx < n_buckets(HASHMAP_BASE(h)));
                 e = plain_bucket_at(h, idx);
                 if (e->value == value)
                         return 0;
@@ -1367,6 +1368,7 @@ void* _hashmap_get(HashmapBase *h, const void *key) {
         idx = bucket_scan(h, hash, key);
         if (idx == IDX_NIL)
                 return NULL;
+        assert(idx < n_buckets(h));
 
         e = bucket_at(h, idx);
         return entry_value(h, e);
